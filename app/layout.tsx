@@ -1,51 +1,32 @@
-"use client"
-
 import type React from "react"
-
 import type { Metadata } from "next"
+import { Inter, JetBrains_Mono } from "next/font/google"
 import "./globals.css"
-import { useEffect } from "react"
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+})
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains-mono",
+})
 
 export const metadata: Metadata = {
-  title: "v0 App",
-  description: "Created with v0",
-  generator: "v0.dev",
+  title: "BakeScan AI - Invoice Management",
+  description: "Intelligent invoice processing for bakery businesses",
+    generator: 'v0.dev'
 }
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
-  useEffect(() => {
-    // Suppress ResizeObserver errors
-    const handleError = (event: ErrorEvent) => {
-      if (event.message.includes("ResizeObserver loop completed with undelivered notifications")) {
-        event.stopImmediatePropagation()
-        event.preventDefault()
-        return false
-      }
-    }
-
-    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      if (event.reason?.message?.includes("ResizeObserver")) {
-        event.preventDefault()
-        return false
-      }
-    }
-
-    window.addEventListener("error", handleError)
-    window.addEventListener("unhandledrejection", handleUnhandledRejection)
-
-    return () => {
-      window.removeEventListener("error", handleError)
-      window.removeEventListener("unhandledrejection", handleUnhandledRejection)
-    }
-  }, [])
-
+}) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>{children}</body>
     </html>
   )
 }

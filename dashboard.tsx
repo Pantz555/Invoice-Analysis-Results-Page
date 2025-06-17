@@ -6,16 +6,17 @@ import { useState, useCallback } from "react"
 import {
   Upload,
   FileText,
-  ImageIcon,
-  AlertCircle,
-  CheckCircle,
-  Clock,
   Search,
   Bell,
-  User,
-  Menu,
   AlertTriangle,
-  Tag,
+  CheckCircle,
+  Clock,
+  Filter,
+  Download,
+  Settings,
+  BarChart3,
+  Users,
+  FileSpreadsheet,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -30,6 +31,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 interface Invoice {
   id: string
@@ -38,6 +40,7 @@ interface Invoice {
   status: "processing" | "completed" | "discrepancies"
   thumbnail: string
   amount?: string
+  invoiceNumber?: string
 }
 
 const mockInvoices: Invoice[] = [
@@ -48,6 +51,7 @@ const mockInvoices: Invoice[] = [
     status: "completed",
     thumbnail: "/placeholder.svg?height=120&width=120",
     amount: "$1,245.50",
+    invoiceNumber: "INV-2024-0156",
   },
   {
     id: "2",
@@ -56,6 +60,7 @@ const mockInvoices: Invoice[] = [
     status: "processing",
     thumbnail: "/placeholder.svg?height=120&width=120",
     amount: "$892.30",
+    invoiceNumber: "INV-2024-0155",
   },
   {
     id: "3",
@@ -64,6 +69,7 @@ const mockInvoices: Invoice[] = [
     status: "discrepancies",
     thumbnail: "/placeholder.svg?height=120&width=120",
     amount: "$3,456.78",
+    invoiceNumber: "INV-2024-0154",
   },
   {
     id: "4",
@@ -72,6 +78,7 @@ const mockInvoices: Invoice[] = [
     status: "completed",
     thumbnail: "/placeholder.svg?height=120&width=120",
     amount: "$567.90",
+    invoiceNumber: "INV-2024-0153",
   },
   {
     id: "5",
@@ -80,6 +87,7 @@ const mockInvoices: Invoice[] = [
     status: "completed",
     thumbnail: "/placeholder.svg?height=120&width=120",
     amount: "$234.15",
+    invoiceNumber: "INV-2024-0152",
   },
   {
     id: "6",
@@ -88,6 +96,7 @@ const mockInvoices: Invoice[] = [
     status: "processing",
     thumbnail: "/placeholder.svg?height=120&width=120",
     amount: "$445.67",
+    invoiceNumber: "INV-2024-0151",
   },
 ]
 
@@ -96,6 +105,7 @@ export default function BakeScanDashboard() {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [isUploading, setIsUploading] = useState(false)
   const [invoices, setInvoices] = useState<Invoice[]>(mockInvoices)
+  const [searchQuery, setSearchQuery] = useState("")
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -130,7 +140,7 @@ export default function BakeScanDashboard() {
             // Add new invoice to the list
             const newInvoice: Invoice = {
               id: Date.now().toString(),
-              supplier: "New Supplier",
+              supplier: "Processing...",
               date: new Date().toISOString().split("T")[0],
               status: "processing",
               thumbnail: "/placeholder.svg?height=120&width=120",
@@ -151,18 +161,18 @@ export default function BakeScanDashboard() {
       case "processing":
         return <Clock className="h-4 w-4" />
       case "discrepancies":
-        return <AlertCircle className="h-4 w-4" />
+        return <AlertTriangle className="h-4 w-4" />
     }
   }
 
   const getStatusColor = (status: Invoice["status"]) => {
     switch (status) {
       case "completed":
-        return "bg-green-100 text-green-800 border-green-200"
+        return "bg-success/10 text-success border-success/20"
       case "processing":
-        return "bg-amber-100 text-amber-800 border-amber-200"
+        return "bg-warning/10 text-warning border-warning/20"
       case "discrepancies":
-        return "bg-red-100 text-red-800 border-red-200"
+        return "bg-error/10 text-error border-error/20"
     }
   }
 
@@ -173,106 +183,213 @@ export default function BakeScanDashboard() {
       case "processing":
         return "Processing"
       case "discrepancies":
-        return "Discrepancies Found"
+        return "Needs Review"
     }
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50">
-      {/* Header */}
-      <header className="bg-white border-b border-amber-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-amber-600 to-orange-600 rounded-lg flex items-center justify-center">
-                  <FileText className="h-5 w-5 text-white" />
-                </div>
-                <h1 className="text-2xl font-bold text-amber-900">BakeScan AI</h1>
-              </div>
-              <nav className="hidden md:flex space-x-6">
-                <a href="#" className="text-amber-900 hover:text-amber-700 font-medium">
-                  Dashboard
-                </a>
-                <a href="#" className="text-amber-700 hover:text-amber-900">
-                  Invoices
-                </a>
-                <a href="/discrepancy-management" className="text-amber-700 hover:text-amber-900">
-                  Discrepancies
-                </a>
-                <a href="/supplier-management" className="text-amber-700 hover:text-amber-900">
-                  Suppliers
-                </a>
-                <a href="#" className="text-amber-700 hover:text-amber-900">
-                  Reports
-                </a>
-                <a href="#" className="text-amber-700 hover:text-amber-900">
-                  Settings
-                </a>
-              </nav>
-            </div>
+  const filteredInvoices = invoices.filter(
+    (invoice) =>
+      invoice.supplier.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      invoice.invoiceNumber?.toLowerCase().includes(searchQuery.toLowerCase()),
+  )
 
-            <div className="flex items-center space-x-4">
-              <div className="hidden md:block relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-amber-500" />
-                <Input
-                  placeholder="Search invoices..."
-                  className="pl-10 w-64 border-amber-200 focus:border-amber-400"
-                />
+  return (
+    <div className="min-h-screen bg-base-fg">
+      {/* Sidebar */}
+      <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-base-0 shadow-card">
+        <div className="flex h-full flex-col">
+          {/* Logo */}
+          <div className="flex h-16 items-center px-6 border-b border-base-fg">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
+                <FileText className="h-5 w-5 text-white" />
               </div>
-              <Button variant="ghost" size="icon" className="text-amber-700 hover:text-amber-900">
-                <Bell className="h-5 w-5" />
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="text-amber-700 hover:text-amber-900">
-                    <User className="h-5 w-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>Profile</DropdownMenuItem>
-                  <DropdownMenuItem>Settings</DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>Sign out</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <Button variant="ghost" size="icon" className="md:hidden">
-                <Menu className="h-5 w-5" />
-              </Button>
+              <div>
+                <h1 className="text-lg font-semibold text-primary">BakeScan AI</h1>
+                <p className="text-xs text-muted-foreground">Invoice Intelligence</p>
+              </div>
             </div>
           </div>
-        </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Upload Section */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-amber-900 mb-6">Upload Invoice</h2>
-          <Card className="border-2 border-dashed border-amber-300 bg-white/50 backdrop-blur-sm">
-            <CardContent className="p-8">
+          {/* Navigation */}
+          <nav className="flex-1 px-4 py-6 space-y-2">
+            <Button variant="default" className="w-full justify-start bg-accent text-white">
+              <BarChart3 className="h-4 w-4 mr-3" />
+              Dashboard
+            </Button>
+            <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-primary">
+              <FileText className="h-4 w-4 mr-3" />
+              Invoices
+            </Button>
+            <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-primary">
+              <AlertTriangle className="h-4 w-4 mr-3" />
+              Discrepancies
+            </Button>
+            <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-primary">
+              <Users className="h-4 w-4 mr-3" />
+              Suppliers
+            </Button>
+            <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-primary">
+              <FileSpreadsheet className="h-4 w-4 mr-3" />
+              Reports
+            </Button>
+            <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-primary">
+              <Settings className="h-4 w-4 mr-3" />
+              Settings
+            </Button>
+          </nav>
+
+          {/* User Profile */}
+          <div className="p-4 border-t border-base-fg">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="w-full justify-start p-2">
+                  <Avatar className="h-8 w-8 mr-3">
+                    <AvatarImage src="/placeholder.svg?height=32&width=32" />
+                    <AvatarFallback className="bg-accent text-white">JD</AvatarFallback>
+                  </Avatar>
+                  <div className="text-left">
+                    <p className="text-sm font-medium">Jane Doe</p>
+                    <p className="text-xs text-muted-foreground">Finance Manager</p>
+                  </div>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>Profile</DropdownMenuItem>
+                <DropdownMenuItem>Settings</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>Sign out</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="ml-64">
+        {/* Header */}
+        <header className="bg-base-0 border-b border-base-fg shadow-sm">
+          <div className="px-8 py-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-semibold text-primary">Dashboard</h2>
+                <p className="text-muted-foreground">Manage your invoice processing with confidence</p>
+              </div>
+
+              <div className="flex items-center space-x-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search invoices..."
+                    className="pl-10 w-64"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <Button variant="outline" size="icon">
+                  <Bell className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div className="p-8 space-y-8">
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <Card className="shadow-card">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Invoices</p>
+                    <p className="text-2xl font-bold font-numeric text-primary">{invoices.length}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-accent/10 rounded-card flex items-center justify-center">
+                    <FileText className="h-6 w-6 text-accent" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-card">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Processing</p>
+                    <p className="text-2xl font-bold font-numeric text-primary">
+                      {invoices.filter((i) => i.status === "processing").length}
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 bg-warning/10 rounded-card flex items-center justify-center">
+                    <Clock className="h-6 w-6 text-warning" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-card">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Completed</p>
+                    <p className="text-2xl font-bold font-numeric text-primary">
+                      {invoices.filter((i) => i.status === "completed").length}
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 bg-success/10 rounded-card flex items-center justify-center">
+                    <CheckCircle className="h-6 w-6 text-success" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-card">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Need Review</p>
+                    <p className="text-2xl font-bold font-numeric text-primary">
+                      {invoices.filter((i) => i.status === "discrepancies").length}
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 bg-error/10 rounded-card flex items-center justify-center">
+                    <AlertTriangle className="h-6 w-6 text-error" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Upload Section */}
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle className="text-primary">Upload Invoices</CardTitle>
+              <p className="text-muted-foreground">
+                Drop your invoice files here or click to browse. We'll handle the rest with precision.
+              </p>
+            </CardHeader>
+            <CardContent>
               <div
-                className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                  isDragOver
-                    ? "border-amber-500 bg-amber-50"
-                    : "border-amber-300 hover:border-amber-400 hover:bg-amber-25"
+                className={`relative border-2 border-dashed rounded-card p-8 text-center transition-colors ${
+                  isDragOver ? "border-accent bg-accent/5" : "border-base-fg hover:border-accent/50 hover:bg-accent/5"
                 }`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
               >
                 <div className="flex flex-col items-center space-y-4">
-                  <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center">
+                  <div className="w-16 h-16 bg-accent rounded-card flex items-center justify-center">
                     <Upload className="h-8 w-8 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold text-amber-900 mb-2">Drop your invoice files here</h3>
-                    <p className="text-amber-700 mb-4">or click to browse and select files</p>
-                    <p className="text-sm text-amber-600">Supports JPG, PNG, and PDF files up to 10MB</p>
+                    <h3 className="text-lg font-semibold text-primary mb-2">Drop invoice files here</h3>
+                    <p className="text-muted-foreground mb-4">or click to browse and select files</p>
+                    <p className="text-sm text-muted-foreground">Supports JPG, PNG, and PDF files up to 10MB</p>
                   </div>
                   <Button
-                    className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white"
+                    className="bg-accent hover:bg-accent/90 text-white rounded-button"
                     onClick={() => {
                       const input = document.createElement("input")
                       input.type = "file"
@@ -294,134 +411,102 @@ export default function BakeScanDashboard() {
               {isUploading && (
                 <div className="mt-6">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-amber-900">Uploading...</span>
-                    <span className="text-sm text-amber-700">{uploadProgress}%</span>
+                    <span className="text-sm font-medium text-primary">Uploading...</span>
+                    <span className="text-sm font-numeric text-muted-foreground">{uploadProgress}%</span>
                   </div>
                   <Progress value={uploadProgress} className="h-2" />
                 </div>
               )}
             </CardContent>
           </Card>
-        </div>
 
-        {/* Discrepancy Summary */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-3xl font-bold text-amber-900">Discrepancy Alerts</h2>
-            <Button
-              variant="outline"
-              className="border-amber-300 text-amber-700 hover:bg-amber-50"
-              onClick={() => (window.location.href = "/discrepancy-management")}
-            >
-              View All
-            </Button>
-          </div>
-
-          <Card className="bg-white/70 backdrop-blur-sm border-red-200">
-            <CardContent className="p-6">
-              <div className="flex flex-col md:flex-row gap-6">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                    <AlertTriangle className="h-6 w-6 text-red-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-red-600 uppercase tracking-wide">Price Increases</p>
-                    <p className="text-2xl font-bold text-red-900">4</p>
-                  </div>
+          {/* Recent Invoices */}
+          <Card className="shadow-card">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle className="text-primary">Recent Invoices</CardTitle>
+                  <p className="text-muted-foreground">Your latest invoice processing activity</p>
                 </div>
-
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
-                    <Tag className="h-6 w-6 text-amber-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-amber-600 uppercase tracking-wide">Quantity Issues</p>
-                    <p className="text-2xl font-bold text-amber-900">2</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <FileText className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-blue-600 uppercase tracking-wide">Duplicate Invoices</p>
-                    <p className="text-2xl font-bold text-blue-900">2</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-3 ml-auto">
-                  <Button
-                    className="bg-red-600 hover:bg-red-700 text-white"
-                    onClick={() => (window.location.href = "/discrepancy-management")}
-                  >
-                    <AlertTriangle className="h-4 w-4 mr-2" />
-                    Manage Discrepancies
+                <div className="flex space-x-2">
+                  <Button variant="outline" size="sm" className="rounded-button">
+                    <Filter className="h-4 w-4 mr-2" />
+                    Filter
+                  </Button>
+                  <Button variant="outline" size="sm" className="rounded-button">
+                    <Download className="h-4 w-4 mr-2" />
+                    Export
                   </Button>
                 </div>
               </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredInvoices.map((invoice) => (
+                  <Card
+                    key={invoice.id}
+                    className="shadow-card hover:shadow-lg transition-shadow cursor-pointer border border-base-fg hover:border-accent/20"
+                  >
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-12 h-12 bg-base-fg rounded-card flex items-center justify-center">
+                            <FileText className="h-6 w-6 text-accent" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-primary line-clamp-1">{invoice.supplier}</h3>
+                            <p className="text-sm text-muted-foreground">{invoice.date}</p>
+                          </div>
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className={`${getStatusColor(invoice.status)} flex items-center space-x-1 rounded-button`}
+                        >
+                          {getStatusIcon(invoice.status)}
+                          <span className="text-xs font-medium">{getStatusText(invoice.status)}</span>
+                        </Badge>
+                      </div>
+
+                      <div className="space-y-2">
+                        {invoice.invoiceNumber && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Invoice #</span>
+                            <span className="text-sm font-numeric text-primary">{invoice.invoiceNumber}</span>
+                          </div>
+                        )}
+                        {invoice.amount && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Amount</span>
+                            <span className="text-sm font-numeric font-semibold text-primary">{invoice.amount}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="mt-4 pt-4 border-t border-base-fg">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full text-accent hover:text-accent hover:bg-accent/5 rounded-button"
+                        >
+                          View Details
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {filteredInvoices.length === 0 && (
+                <div className="text-center py-12">
+                  <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-primary mb-2">No invoices found</h3>
+                  <p className="text-muted-foreground">
+                    {searchQuery ? "Try adjusting your search terms" : "Upload your first invoice to get started"}
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
-        </div>
-
-        {/* Recent Invoices */}
-        <div>
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-3xl font-bold text-amber-900">Recent Invoices</h2>
-            <Button variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-50">
-              View All
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {invoices.map((invoice) => (
-              <Card
-                key={invoice.id}
-                className="bg-white/70 backdrop-blur-sm border-amber-200 hover:shadow-lg transition-shadow"
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
-                        <ImageIcon className="h-6 w-6 text-amber-600" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg font-semibold text-amber-900 line-clamp-1">
-                          {invoice.supplier}
-                        </CardTitle>
-                        <p className="text-sm text-amber-600">{invoice.date}</p>
-                      </div>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className={`${getStatusColor(invoice.status)} flex items-center space-x-1`}
-                    >
-                      {getStatusIcon(invoice.status)}
-                      <span className="text-xs font-medium">{getStatusText(invoice.status)}</span>
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    <div className="w-20 h-20 bg-amber-50 rounded-lg border border-amber-200 flex items-center justify-center">
-                      <FileText className="h-8 w-8 text-amber-500" />
-                    </div>
-                    <div className="text-right">
-                      {invoice.amount && <p className="text-lg font-bold text-amber-900">{invoice.amount}</p>}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-amber-700 hover:text-amber-900 hover:bg-amber-50"
-                        onClick={() => (window.location.href = "/invoice-analysis")}
-                      >
-                        View Details
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
         </div>
       </main>
     </div>
