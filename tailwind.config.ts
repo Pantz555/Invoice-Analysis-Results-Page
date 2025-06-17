@@ -83,6 +83,11 @@ const config: Config = {
         mono: ["var(--font-jetbrains-mono)"],
         numeric: ["var(--font-jetbrains-mono)"],
       },
+      screens: {
+        sm: "640px",
+        lg: "1024px",
+        xl: "1440px",
+      },
       keyframes: {
         "accordion-down": {
           from: { height: "0" },
